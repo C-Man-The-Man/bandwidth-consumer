@@ -1,0 +1,90 @@
+services:
+  bandwidth:
+    image: alpine:latest
+    container_name: bandwidth-consumer
+    restart: unless-stopped
+
+    # Maximum CPU usage: 25% of one CPU core.
+    cpus: "0.25"
+
+    # Maximum RAM usage.
+    mem_limit: 256m
+
+    # Prevent the container from using additional swap.
+    memswap_limit: 256m
+
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache curl >/dev/null 2>&1
+
+        urls="
+        https://fsn1-speed.hetzner.com/10GB.bin
+        https://nbg1-speed.hetzner.com/10GB.bin
+        https://hel1-speed.hetzner.com/10GB.bin
+        https://gra.proof.ovh.net/files/10Gb.dat
+        https://speedtest.wdc01.softlayer.com/downloads/test10.zip
+        https://speedtest.dal05.softlayer.com/downloads/test10.zip
+        https://speedtest.sin01.softlayer.com/downloads/test10.zip
+        https://speedtest.tok02.softlayer.com/downloads/test10.zip
+        https://speedtest.syd01.softlayer.com/downloads/test10.zip
+        https://speedtest.sao01.softlayer.com/downloads/test10.zip
+        "
+
+        while true; do
+          for url in $$urls; do
+            echo "Downloading: $$url"
+
+            curl -L -sS \
+              --connect-timeout 15 \
+              --max-time 3600 \
+              -o /dev/null \
+              "$$url"
+
+            # OPTIONAL BANDWIDTH LIMITS:
+            #
+            # Uncomment ONE of the following lines by adding it
+            # immediately before "-o /dev/null" above.
+            #
+            # --limit-rate 1M \
+            # Limits download speed to approximately 1 MB/s (~8 Mbps).
+            #
+            # --limit-rate 5M \
+            # Limits download speed to approximately 5 MB/s (~40 Mbps).
+            #
+            # --limit-rate 10M \
+            # Limits download speed to approximately 10 MB/s (~80 Mbps).
+            #
+            # --limit-rate 25M \
+            # Limits download speed to approximately 25 MB/s (~200 Mbps).
+            #
+            # --limit-rate 50M \
+            # Limits download speed to approximately 50 MB/s (~400 Mbps).
+            #
+            # --limit-rate 100M \
+            # Limits download speed to approximately 100 MB/s (~800 Mbps).
+            #
+            #
+            # Explanations (don't uncomment)
+            #
+            # --limit-rate 50M means approximately 50 megabytes/sec, not megabits/sec.
+            #
+            # So the useful conversions are:
+            #
+            # --limit-rate      Approx. bandwidth
+            #
+            #   1M                8 Mbps
+            #   5M               40 Mbps
+            #  10M               80 Mbps
+            #  25M              200 Mbps
+            #  50M              400 Mbps
+            # 100M              800 Mbps
+          done
+        done
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
