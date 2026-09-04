@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
 
     # Maximum CPU usage: 25% of one CPU core.
-    cpus: "0.25"
+    cpus: 0.25
 
     # Maximum RAM usage.
     mem_limit: 256m
