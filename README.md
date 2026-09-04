@@ -1,6 +1,6 @@
 # Continuous Bandwidth Consumer
 
-A lightweight Docker container for continuously generating Internet download traffic on a Raspberry Pi or other low-power Linux device.
+A lightweight Docker container for continuously generating Internet download traffic on a Raspberry Pi or other low-power Linux device (CrankkOS support added), even Windows with Docker installed.
 
 The container downloads large public test files and immediately discards the received data by sending it to `/dev/null`. This makes it possible to generate sustained network traffic without continuously writing downloaded data to an SD card or other storage.
 
@@ -8,7 +8,7 @@ The container downloads large public test files and immediately discards the rec
 
 ## Why does this exist?
 
-Running a browser such as Chromium simply to generate network traffic is unnecessarily heavy on a Raspberry Pi. A browser consumes considerably more CPU and memory and introduces a graphical environment that is not needed for this purpose.
+Running a browser such as Chromium simply to generate network traffic is unnecessarily heavy on a Raspberry Pi or any other mini computer. A browser consumes considerably more CPU and memory and introduces a graphical environment that is not needed for this purpose.
 
 This project provides a much simpler alternative:
 
@@ -102,18 +102,57 @@ Therefore a 10 GB download does not create a 10 GB file on the Raspberry Pi.
 
 ---
 
+## Compose versions
+
+Two Compose files are provided.
+
+### Standard version
+
+`docker-compose.yml`
+
+This is the standard version intended for current Docker Compose installations.
+
+It can be used on:
+
+- Raspberry Pi OS
+- CrankkIMG
+- Debian
+- Ubuntu
+- Other modern Linux distributions
+- Windows with Docker Desktop
+- Other systems running a current Docker/Compose installation
+
+It includes Docker log rotation and uses the standard modern Compose configuration.
+
+### Legacy version
+
+`docker-compose-legacy.yml`
+
+This version is intended for older Docker/Compose installations where some newer Compose options are not supported.
+
+It can also be used on normal Docker installations, but it is primarily provided for systems such as CrankkOS and similar Buildroot-based operating systems that use an older Docker/Compose stack.
+
+The legacy version deliberately avoids the logging: configuration used by the standard version because older Compose implementations may reject it.
+
+The resource limits and bandwidth-limit options remain available in the legacy version.
+
+---
+
 ## Requirements
 
 - Docker
 - Docker Compose
 - Internet connection
 - A Raspberry Pi or Linux system
+- Windows with Docker installed
 
 The container itself does not require a graphical environment.
 
 ---
 
 ## Installation
+
+### I. Standard version (Docker / Compose Modern Systems)
 
 1. Create a working directory for the project:
 
@@ -140,11 +179,7 @@ docker compose up -d
 docker compose ps
 ```
 
----
-
-## Monitoring
-
-1. View the container logs:
+5. View the container logs:
 
 ```bash
 docker compose logs -f
@@ -156,7 +191,7 @@ The log will show which endpoint is currently being downloaded:
 bandwidth-consumer | Downloading: https://fsn1-speed.hetzner.com/10GB.bin
 ```
 
-2. Monitor resource usage:
+6. Monitor resource usage:
 
 ```bash
 docker stats bandwidth-consumer
@@ -170,6 +205,68 @@ xxxxxxxxxxxx   bandwidth-consumer   4.5%    3.2MiB / 256MiB     1.2%    179MB / 
 ```
 
 `NET I/O` should continuously increase while traffic is being received.
+
+### II. Legacy version (Legacy Docker Systems / CrankkOS)
+
+**CrankkOS** is a **Buildroot**-based operating system with a restricted filesystem. The `/data` directory is the writable working area.
+
+For CrankkOS and other systems using an older Docker/Compose implementation, use `docker-compose-legacy.yml`.
+
+This installation guide refers only at CrankkOS because only this system was tested.
+
+1. Create the working directory
+
+Create the directory under `/data`:
+
+```bash
+cd /data
+```
+```bash
+mkdir bandwidth-consumer
+```
+```bash
+cd bandwidth-consumer
+```
+
+2. Download the legacy Compose file
+
+Download `docker-compose-legacy.yml` from the repository:
+
+```bash
+curl -L -o docker-compose.yml https://raw.githubusercontent.com/C-Man-The-Man/bandwidth-consumer/main/docker-compose-legacy.yml
+```
+
+The file is downloaded and renamed as `docker-compose.yml`.
+
+3. Start the container
+
+Use the legacy `docker-compose` command:
+
+```bash
+docker-compose up -d
+```
+
+4. Check the container
+
+```bash
+docker-compose ps
+```
+
+5. View the logs
+
+```bash
+docker logs -f bandwidth-consumer
+```
+
+6. Monitor resource usage
+
+```bash
+docker stats bandwidth-consumer
+```
+
+The container does not require any additional writable directories, volumes, or host filesystem paths.
+
+All normal container activity remains inside Docker, while the downloaded network data is discarded through `/dev/null`.
 
 ---
 
@@ -187,7 +284,7 @@ This discards the received data immediately.
 
 For example, downloading a 10 GB file results in approximately 10 GB of network traffic but does not create a 10 GB file on the SD card.
 
-Docker logging is also limited:
+Docker logging is also limited for the Standard version (not supported for the Legacy version):
 
 ```bash
 logging:
@@ -230,12 +327,12 @@ For approximately 800 Mbps:
 `curl` uses bytes per second for this option, so:
 
 ```text
-1M  ≈ 8 Mbps
-5M  ≈ 40 Mbps
-10M ≈ 80 Mbps
-25M ≈ 200 Mbps
-50M ≈ 400 Mbps
-100M ≈ 800 Mbps
+  1M  ≈    8 Mbps
+  5M  ≈   40 Mbps
+ 10M  ≈   80 Mbps
+ 25M  ≈  200 Mbps
+ 50M  ≈  400 Mbps
+100M  ≈  800 Mbps
 ```
 
 If no `--limit-rate` option is specified, `curl` is allowed to use as much bandwidth as the connection and remote server provide.
@@ -247,7 +344,7 @@ If no `--limit-rate` option is specified, `curl` is allowed to use as much bandw
 The default Compose configuration limits the container to:
 
 ```bash
-cpus: "0.25"
+cpus: 0.25
 mem_limit: 256m
 memswap_limit: 256m
 ```
@@ -274,6 +371,12 @@ https://fsn1-speed.hetzner.com/10GB.bin
 https://nbg1-speed.hetzner.com/10GB.bin
 https://hel1-speed.hetzner.com/10GB.bin
 https://gra.proof.ovh.net/files/10Gb.dat
+https://speedtest.wdc01.softlayer.com/downloads/test10.zip
+https://speedtest.dal05.softlayer.com/downloads/test10.zip
+https://speedtest.sin01.softlayer.com/downloads/test10.zip
+https://speedtest.tok02.softlayer.com/downloads/test10.zip
+https://speedtest.syd01.softlayer.com/downloads/test10.zip
+https://speedtest.sao01.softlayer.com/downloads/test10.zip
 "
 ```
 
@@ -290,6 +393,8 @@ If an endpoint fails, the container proceeds to the next endpoint.
 ---
 
 ## Additional commands
+
+**Standard** version
 
 - Stopping the container
 
@@ -308,6 +413,8 @@ docker compose up -d
 ```bash
 docker compose restart
 ```
+
+Use `docker-compose` for the **Legacy** version.
 
 ---
 
